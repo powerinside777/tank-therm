@@ -212,30 +212,38 @@ function check(){
     if(cooling){
         if(temp1it <= cooljump || temp2it <= cooljump ){
             //stopcooling
-            cooling = false;
-            writepin(GPIO_COOLING,'in');
+            if(temp1it > 0 && temp2it > 0 ) {
+                cooling = false;
+                writepin(GPIO_COOLING, 'in');
+            }
         }
     }
-    if(heating){
-        if(temp1it >= heatjump || temp2it >= heatjump ){
+    if(heating) {
+        if (temp1it >= heatjump || temp2it >= heatjump) {
             //stopcooling
-            heating = false;
-            writepin(GPIO_HEAT,'in');
+            if (temp1it < 50 && temp2it < 50) {
+                heating = false;
+                writepin(GPIO_HEAT, 'in');
+            }
         }
     }
-    if(temp1it === 25.0 || temp2it === 25.0 ){
+    if(temp1it <= 25.0 || temp2it <=25.0 ){
         //warning heating not working
-
-        sendtext("Temp too low and heater is set to on");
-        mqtt_client.publish("home", "Temprature-Warninig Low-"+temp1it.toString());
+        if(temp1it > 0 && temp2it > 0 ) {
+            sendtext("Temp too low and heater is set to on");
+            mqtt_client.publish("home", "Temprature-Warninig Low-" + temp1it.toString());
+        }
     }
-    if(temp1it === 27.8 || temp2it == 27.9)
+    if(temp1it >= 27.8 || temp2it >= 27.9)
     {
-        if(cooling)
-            sendtext("temp too high cooler not working");
 
-        mqtt_client.publish("home", "Temprature-Warninig Hight-"+temp1it.toString());
+         if(!cooling) {
+             if (temp1it < 50 && temp2it < 50) {
+                 sendtext("temp too high cooler not working");
 
+                 mqtt_client.publish("home", "Temprature-Warninig Hight-" + temp1it.toString());
+             }
+         }
     }
 }
 // Create a wrapper function which we'll use specifically for logging
