@@ -101,10 +101,10 @@ mqtt_client.on('message', function (topic, message) {
 });
 function writepin(pin,value){
     // fs.writeFile(PATH + '/gpio' + pin + '/value', value,function(err)
-    fs.writeFile(PATH+'/gpio'+ pin + '/direction',value,function(err)
+    fs.writeFile(PATH+'/gpio'+ pin + '/value',value,function(err)
     {
         console.error(err);
-        mqtt_client.publish("home", "Temprature-Error GPIO PIN WRITE ERROR-"+err);
+        mqtt_client.publish("home", "Error-Temprature GPIO PIN WRITE ERROR-"+err);
     });
 
 }
@@ -127,7 +127,7 @@ setInterval(function(){
         if (err){
             console.error(err);
             process.exit(1);
-            mqtt_client.publish("home", "Temprature-Error Read Tank-"+err);
+            mqtt_client.publish("home", "Error-Temprature Read Tank-"+err);
         }
 
         // Read data from file (using fast node ASCII encoding).
@@ -147,7 +147,7 @@ setInterval(function(){
         if (err){
             console.error(err);
             process.exit(1);
-            mqtt_client.publish("home", "Temprature-Error Read Sump-"+err);
+            mqtt_client.publish("home", "Error-Temprature Read Sump-"+err);
         }
 
         // Read data from file (using fast node ASCII encoding).
@@ -165,7 +165,7 @@ setInterval(function(){
         if (err){
             console.error(err);
             process.exit(1);
-            mqtt_client.publish("home", "Temprature-Error Read Room-"+err);
+            mqtt_client.publish("home", "Error-Temprature Read Room-"+err);
         }
 
         // Read data from file (using fast node ASCII encoding).
