@@ -100,12 +100,24 @@ function savedata(data,sensor){
     temp.findOne({ 'Temprature.id' :  'main' }, function(err, temprature) {
         if (err)
             return;
-
+        console.log("found db")
         // if no user is found, return the message
         if (!temprature)
             return;
-
-        temprature.Temprature.sensor = data;
+        switch(sensor){
+            case "coolstart":
+                temprature.Temprature.coolstart = data;
+                break;
+            case "cooljump":
+                temprature.Temprature.cooljump = data;
+                break;
+            case "heatstart":
+                temprature.Temprature.heatstart = data;
+                break;
+            case "heatjump":
+                temprature.Temprature.heatjump = data;
+                break;
+        }
 
         // save
         temprature.save(function (err) {
@@ -151,7 +163,7 @@ function exportPin(pin) {
 // Setup database connection for logging
 // Read current temperature from sensor
 setInterval(function(){
-    fs.readFile('/sys/bus/w1/devices/28-0000077c030b/w1_slave', function(err, bu$)
+    fs.readFile('/sys/bus/w1/devices/28-0000077c030b/w1_slave', function(err, buffer)
     {
         if (err){
             console.error(err);
@@ -160,7 +172,7 @@ setInterval(function(){
         }
 
         // Read data from file (using fast node ASCII encoding).
-        var data = bu$.toString('ascii').split(" "); // Split by space
+        var data = buffer.toString('ascii').split(" "); // Split by space
 
         // Extract temperature from string and divide by 1000 to give celsius
         temp1  = parseFloat(data[data.length-1].split("=")[1])/1000.0;
@@ -171,7 +183,7 @@ setInterval(function(){
         mqtt_client.publish("home", "Temprature-Tank-"+temp1);
 
     });
-    fs.readFile('/sys/bus/w1/devices/28-041658a940ff/w1_slave', function(err, $)
+    fs.readFile('/sys/bus/w1/devices/28-041658a940ff/w1_slave', function(err, buffer)
     {
         if (err){
             console.error(err);
@@ -180,7 +192,7 @@ setInterval(function(){
         }
 
         // Read data from file (using fast node ASCII encoding).
-        var data = bu$.toString('ascii').split(" "); // Split by space
+        var data = buffer.toString('ascii').split(" "); // Split by space
 
         // Extract temperature from string and divide by 1000 to give celsius
         temp2  = parseFloat(data[data.length-1].split("=")[1])/1000.0;
@@ -189,7 +201,7 @@ setInterval(function(){
         temp2 = Math.round(temp2 * 10) / 10;
         mqtt_client.publish("home", "Temprature-Sump-"+temp2);
     });
-    fs.readFile('/sys/bus/w1/devices/28-041658bf36ff/w1_slave', function(err, $)
+    fs.readFile('/sys/bus/w1/devices/28-041658bf36ff/w1_slave', function(err, buffer)
     {
         if (err){
             console.error(err);
@@ -198,7 +210,7 @@ setInterval(function(){
         }
 
         // Read data from file (using fast node ASCII encoding).
-        var data = bu$.toString('ascii').split(" "); // Split by space
+        var data = buffer.toString('ascii').split(" "); // Split by space
 
         // Extract temperature from string and divide by 1000 to give celsius
         temp3  = parseFloat(data[data.length-1].split("=")[1])/1000.0;
