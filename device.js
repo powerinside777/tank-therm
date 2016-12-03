@@ -239,7 +239,9 @@ function check(){
         if(temp1it >coolstart){
             cooling = true;
             writepin(GPIO_COOLING,'out');
+            setTimeout(function() {
             writepin(GPIO_HEAT,'in');
+            },5000)
         }
     }
     else if (temp2it <heatstart){
@@ -247,7 +249,9 @@ function check(){
         if (temp1it <heatstart){
             heating = true;
             writepin(GPIO_HEAT,'out');
-            writepin(GPIO_COOLING,'in');
+            setTimeout(function() {
+                writepin(GPIO_COOLING, 'in');
+            },5000)
         }
     }
     if(cooling){
