@@ -23,8 +23,8 @@
       <file leaf-file-name="device.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/device.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="228">
-              <caret line="102" column="29" selection-start-line="102" selection-start-column="29" selection-end-line="102" selection-end-column="29" />
+            <state relative-caret-position="551">
+              <caret line="229" column="17" selection-start-line="229" selection-start-column="17" selection-end-line="229" selection-end-column="17" />
               <folding>
                 <element signature="e#1863#1949#0" expanded="false" />
                 <element signature="n#!!block;n#writepin#0" expanded="false" />
@@ -193,8 +193,8 @@
     <handled-path value="$PROJECT_DIR$/node_modules" />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="341" />
-    <option name="y" value="30" />
+    <option name="x" value="401" />
+    <option name="y" value="187" />
     <option name="width" value="1920" />
     <option name="height" value="1040" />
   </component>
@@ -491,15 +491,15 @@
       <workItem from="1480040580180" duration="2518000" />
       <workItem from="1480512369106" duration="1061000" />
       <workItem from="1480554059731" duration="2851000" />
-      <workItem from="1480680944121" duration="7148000" />
+      <workItem from="1480680944121" duration="8059000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="199545000" />
+    <option name="totallyTimeSpent" value="200456000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="341" y="30" width="1920" height="1040" extended-state="0" />
+    <frame x="401" y="187" width="1920" height="1040" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.37920168" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -784,8 +784,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/device.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="102" column="29" selection-start-line="102" selection-start-column="29" selection-end-line="102" selection-end-column="29" />
+        <state relative-caret-position="551">
+          <caret line="229" column="17" selection-start-line="229" selection-start-column="17" selection-end-line="229" selection-end-column="17" />
           <folding>
             <element signature="e#1863#1949#0" expanded="false" />
             <element signature="n#!!block;n#writepin#0" expanded="false" />

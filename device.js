@@ -168,7 +168,7 @@ setInterval(function(){
         if (err){
             console.error(err);
             process.exit(1);
-            mqtt_client.publish("home", "Error-Temprature Read Tank-"+err);
+            mqtt_client.publish("home", "Error-Temprature Read Sump-"+err);
         }
 
         // Read data from file (using fast node ASCII encoding).
@@ -180,7 +180,7 @@ setInterval(function(){
         // Round to one decimal place
         temp1 = Math.round(temp1 * 10) / 10;
         console.log("Temp1="+temp1)
-        mqtt_client.publish("home", "Temprature-Tank-"+temp1);
+        mqtt_client.publish("home", "Temprature-Sump-"+temp1);
 
     });
     fs.readFile('/sys/bus/w1/devices/28-041658a940ff/w1_slave', function(err, buffer)
@@ -188,7 +188,7 @@ setInterval(function(){
         if (err){
             console.error(err);
             process.exit(1);
-            mqtt_client.publish("home", "Error-Temprature Read Sump-"+err);
+            mqtt_client.publish("home", "Error-Temprature Read Tank-"+err);
         }
 
         // Read data from file (using fast node ASCII encoding).
@@ -199,7 +199,7 @@ setInterval(function(){
 
         // Round to one decimal place
         temp2 = Math.round(temp2 * 10) / 10;
-        mqtt_client.publish("home", "Temprature-Sump-"+temp2);
+        mqtt_client.publish("home", "Temprature-Tank-"+temp2);
     });
     fs.readFile('/sys/bus/w1/devices/28-041658bf36ff/w1_slave', function(err, buffer)
     {
@@ -216,7 +216,7 @@ setInterval(function(){
         temp3  = parseFloat(data[data.length-1].split("=")[1])/1000.0;
 
         // Round to one decimal place
-        temp3 = Math.round(temp2 * 10) / 10;
+        temp3 = Math.round(temp3 * 10) / 10;
         mqtt_client.publish("home", "Temprature-Room-"+temp3);
     });
     check();
