@@ -11,18 +11,47 @@ var MQTT_BROKER_USER = 'josh';
 var MQTT_BROKER_PASS = 'Isabella2030';
 var mongoose = require('mongoose');
 var configDB = require('./models/database.js');
-
+var db = mongoose.connection;
 var temp       		= require('./models/temprature');
-
+var lastReconnectAttempt;
 var settings = {
     username:MQTT_BROKER_USER,
     password:MQTT_BROKER_PASS
 }
-mongoose.connect(configDB.url,function(err) {
+mongoose.connect(configDB.url,{server:{auto_reconnect:true}},function(err) {
     if (err)
         return console.error(err);
 
 }); // connect to our database
+db.on('error', function(error) {
+    console.error('Error in MongoDb connection: ' + error);
+    mongoose.disconnect();
+});
+db.on('disconnected', function() {
+    console.log('MongoDB disconnected!');
+    var now = new Date().getTime();
+    // check if the last reconnection attempt was too early
+    if (lastReconnectAttempt && now-lastReconnectAttempt<5000) {
+        // if it does, delay the next attempt
+        var delay = 5000-(now-lastReconnectAttempt);
+        console.log('reconnecting to MongoDB in ' + delay + "mills");
+        setTimeout(function() {
+            console.log('reconnecting to MongoDB');
+            lastReconnectAttempt=new Date().getTime();
+            mongoose.connect(configDB.url, {server:{auto_reconnect:true}});
+        },delay);
+    }
+    else {
+        console.log('reconnecting to MongoDB');
+        lastReconnectAttempt=now;
+        mongoose.connect(configDB.url, {server:{auto_reconnect:true}});
+    }
+
+});
+db.on('connected', function() {
+    updatedata()
+
+});
 var mqtt_client  = mqtt.connect(MQTT_HOST,settings);
 mqtt_client.on('connect', function () {
     mqtt_client.subscribe('home/fish/temp');
@@ -131,7 +160,7 @@ setInterval(function(){
         }
 
         // Read data from file (using fast node ASCII encoding).
-        var data = buffer.toString('ascii').split(" "); // Split by space
+        var data = bu$.toString('ascii').split(" "); // Split by space
 
         // Extract temperature from string and divide by 1000 to give celsius
         temp1  = parseFloat(data[data.length-1].split("=")[1])/1000.0;
@@ -151,7 +180,7 @@ setInterval(function(){
         }
 
         // Read data from file (using fast node ASCII encoding).
-        var data = buffer.toString('ascii').split(" "); // Split by space
+        var data = bu$.toString('ascii').split(" "); // Split by space
 
         // Extract temperature from string and divide by 1000 to give celsius
         temp2  = parseFloat(data[data.length-1].split("=")[1])/1000.0;
@@ -169,7 +198,7 @@ setInterval(function(){
         }
 
         // Read data from file (using fast node ASCII encoding).
-        var data = buffer.toString('ascii').split(" "); // Split by space
+        var data = bu$.toString('ascii').split(" "); // Split by space
 
         // Extract temperature from string and divide by 1000 to give celsius
         temp3  = parseFloat(data[data.length-1].split("=")[1])/1000.0;
