@@ -372,7 +372,7 @@ var data = schedule.scheduleJob(sendtimerdata, function(){
             res.end("sent");
         }
     });
-
+    error = '';
     stopwatch.reset();
     stopwatch1.reset();
 });
