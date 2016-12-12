@@ -5,6 +5,7 @@ var fs = require('fs');
 var sys = require('sys');
 var http = require('http');
 var TMClient = require('textmagic-rest-client');
+var nodemailer = require("nodemailer");
 var path = require('path');
 var mqtt    = require('mqtt');
 var DEVICE = "10.0.0.158"
@@ -16,6 +17,7 @@ var configDB = require('./models/database.js');
 var db = mongoose.connection;
 var temp       		= require('./models/temprature');
 var lastReconnectAttempt;
+var error =""
 var ncurrentcoolerrunftime;
 var sendtimerdata = new schedule.RecurrenceRule();
 var settings = {
@@ -35,6 +37,8 @@ db.on('error', function(error) {
 });
 db.on('disconnected', function() {
     console.log('MongoDB disconnected!');
+    var now = new Date().getTime();
+    error += "MongoDB disconnected!" + now;
     setTimeout(function() {
         var now = new Date().getTime();
         // check if the last reconnection attempt was too early
@@ -152,6 +156,8 @@ function writepin(pin,value){
     fs.writeFile(PATH+'/gpio'+ pin + '/direction',value,function(err) {
         if (err) {
             mqtt_client.publish("home", "Error-Temprature GPIO PIN WRITE ERROR-" + err);
+            var now = new Date().getTime();
+            error += "Write Pin Error "+pin+" " + now
             return;
         }
         if(pin  == GPIO_HEAT) {
@@ -189,10 +195,12 @@ function exportPin(pin) {
 // Setup database connection for logging
 // Read current temperature from sensor
 setInterval(function(){
+    var now = new Date().getTime();
     fs.readFile('/sys/bus/w1/devices/28-0000077c030b/w1_slave', function(err, buffer)
     {
         if (err){
             console.error(err);
+            error += "Temp read error Sump  " +now
             process.exit(1);
             mqtt_client.publish("home", "Error-Temprature Read Sump-"+err);
         }
@@ -214,6 +222,7 @@ setInterval(function(){
         if (err){
             console.error(err);
             process.exit(1);
+            error += "Temp read error Tank  " + now
             mqtt_client.publish("home", "Error-Temprature Read Tank-"+err);
         }
 
@@ -232,6 +241,7 @@ setInterval(function(){
         if (err){
             console.error(err);
             process.exit(1);
+            error += "Temp read error Room  " +now
             mqtt_client.publish("home", "Error-Temprature Read Room-"+err);
         }
 
@@ -259,7 +269,7 @@ function check(){
     var callback= "";
     console.log("floatval1="+temp1it.toString());
     console.log("floatval2="+temp2it.toString());
-
+    var now = new Date().getTime();
     if(temp2it >coolstart){
 //oncooler
         if(temp1it >coolstart){
@@ -314,6 +324,7 @@ function check(){
         //warning heating not working
         if(temp1it > 0 && temp2it > 0 ) {
             sendtext("Temp too low and heater is set to on");
+            error += "Temp too low and heater is set to on  " + now
             mqtt_client.publish("home", "Temprature-Warninig Low-" + temp1it.toString());
         }
     }
@@ -323,19 +334,44 @@ function check(){
          if(!cooling) {
              if (temp1it < 50 && temp2it < 50) {
                  sendtext("temp too high cooler not working");
-
+                 error += "temp too high cooler not working " + now
                  mqtt_client.publish("home", "Temprature-Warninig Hight-" + temp1it.toString());
              }
          }
     }
 }
+var smtpTransport = nodemailer.createTransport("SMTP",{
+    service: "Gmail",
+    auth: {
+        user: "powerinside777@gmail.com",
+        pass: "myjesus0101"
+    }
+});
 // Create a wrapper function which we'll use specifically for logging
 sendtimerdata.dayOfWeek = [0, new schedule.Range(0, 6)];
-sendtimerdata.hour =20
-sendtimerdata.minute =0
+sendtimerdata.hour =22
+sendtimerdata.minute =33
 var data = schedule.scheduleJob(sendtimerdata, function(){
     mqtt_client.publish("home", "Temprature-Cooler runtime " +  stopwatch.elapsed.minutes);
     mqtt_client.publish("home", "Temprature-Heater runtime " +  stopwatch1.elapsed.minutes);
+
+
+
+    var mailOptions={
+        to : "powerinside777@gmail.com",
+        subject : 'Fish tank Temprature Report',
+        text : "Current temprature is "+temp1 +'\r\n'+" Current Cooler runtime is "+ stopwatch.elapsed.minutes+' mins \r\n'+"Current Heater runtime is "+
+        stopwatch1.elapsed.minutes+"mins \r\n"+ "errors are \r\n"+error
+    }
+    smtpTransport.sendMail(mailOptions, function(error, response){
+        if(error){
+            console.log(error);
+            res.end("error");
+        }else{
+            console.log("Message sent: " + response.message);
+            res.end("sent");
+        }
+    });
 
     stopwatch.reset();
     stopwatch1.reset();

@@ -10,7 +10,8 @@
     "mongoose":"",
     "textmagic-rest-client":"",
     "node-stopwatch":"",
-    "node-schedule":""
+    "node-schedule":"",
+    "nodemailer":"v0.7.1"
   },
 
   "scripts": {
