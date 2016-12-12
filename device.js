@@ -1,4 +1,6 @@
 // Load node modules
+var Stopwatch = require("node-stopwatch").Stopwatch;
+var schedule = require('node-schedule');
 var fs = require('fs');
 var sys = require('sys');
 var http = require('http');
@@ -6,7 +8,7 @@ var TMClient = require('textmagic-rest-client');
 var path = require('path');
 var mqtt    = require('mqtt');
 var DEVICE = "10.0.0.158"
-var MQTT_HOST = "mqtt://10.0.0.57:1883";
+var MQTT_HOST = "mqtt://10.0.0.61:1883";
 var MQTT_BROKER_USER = 'josh';
 var MQTT_BROKER_PASS = 'Isabella2030';
 var mongoose = require('mongoose');
@@ -14,10 +16,14 @@ var configDB = require('./models/database.js');
 var db = mongoose.connection;
 var temp       		= require('./models/temprature');
 var lastReconnectAttempt;
+var ncurrentcoolerrunftime;
+var sendtimerdata = new schedule.RecurrenceRule();
 var settings = {
     username:MQTT_BROKER_USER,
     password:MQTT_BROKER_PASS
 }
+var stopwatch = Stopwatch.create();
+var stopwatch1 = Stopwatch.create();
 mongoose.connect(configDB.url,{server:{auto_reconnect:true}},function(err) {
     if (err)
         return console.error(err);
@@ -29,24 +35,25 @@ db.on('error', function(error) {
 });
 db.on('disconnected', function() {
     console.log('MongoDB disconnected!');
-    var now = new Date().getTime();
-    // check if the last reconnection attempt was too early
-    if (lastReconnectAttempt && now-lastReconnectAttempt<5000) {
-        // if it does, delay the next attempt
-        var delay = 5000-(now-lastReconnectAttempt);
-        console.log('reconnecting to MongoDB in ' + delay + "mills");
-        setTimeout(function() {
+    setTimeout(function() {
+        var now = new Date().getTime();
+        // check if the last reconnection attempt was too early
+        if (lastReconnectAttempt && now - lastReconnectAttempt < 5000) {
+            // if it does, delay the next attempt
+            var delay = 5000 - (now - lastReconnectAttempt);
+            console.log('reconnecting to MongoDB in ' + delay + "mills");
+            setTimeout(function () {
+                console.log('reconnecting to MongoDB');
+                lastReconnectAttempt = new Date().getTime();
+                mongoose.connect(configDB.url, {server: {auto_reconnect: true}});
+            }, delay);
+        }
+        else {
             console.log('reconnecting to MongoDB');
-            lastReconnectAttempt=new Date().getTime();
-            mongoose.connect(configDB.url, {server:{auto_reconnect:true}});
-        },delay);
-    }
-    else {
-        console.log('reconnecting to MongoDB');
-        lastReconnectAttempt=now;
-        mongoose.connect(configDB.url, {server:{auto_reconnect:true}});
-    }
-
+            lastReconnectAttempt = now;
+            mongoose.connect(configDB.url, {server: {auto_reconnect: true}});
+        }
+    },900000)
 });
 db.on('connected', function() {
     updatedata()
@@ -142,19 +149,38 @@ mqtt_client.on('message', function (topic, message) {
 });
 function writepin(pin,value){
     // fs.writeFile(PATH + '/gpio' + pin + '/value', value,function(err)
-    fs.writeFile(PATH+'/gpio'+ pin + '/value',value,function(err)
-    {
-        console.error(err);
-        mqtt_client.publish("home", "Error-Temprature GPIO PIN WRITE ERROR-"+err);
-    });
+    fs.writeFile(PATH+'/gpio'+ pin + '/direction',value,function(err) {
+        if (err) {
+            mqtt_client.publish("home", "Error-Temprature GPIO PIN WRITE ERROR-" + err);
+            return;
+        }
+        if(pin  == GPIO_HEAT) {
+            if (value == 'in') $$(heating)
+            {
+                heating = false;
+                mqtt_client.publish("home", "Temprature-heating Stoped");
+                stopwatch1.stop();
+            }
+        }
+        if(pin  == GPIO_COOLING) {
+            if (value == 'in') $$(cooling)
+            {
+                cooling = false;
+                mqtt_client.publish("home", "Temprature-Cooling Stoped");
+                stopwatch.stop();
 
+            }
+        }
+
+
+    });
 }
 function exportPin(pin) {
     fs.writeFile(PATH + '/export', pin, function(err) {
         console.error(err);
     });
 
-    fs.writeFile(PATH+'/gpio'+ pin + '/direction','out',function(err)
+    fs.writeFile(PATH+'/gpio'+ pin + '/direction','in',function(err)
     {
         console.error(err);
     });
@@ -237,29 +263,41 @@ function check(){
     if(temp2it >coolstart){
 //oncooler
         if(temp1it >coolstart){
+            if(!cooling) {
+                mqtt_client.publish("home", "Temprature-cooling started");
+                stopwatch.start();
+            }
             cooling = true;
             writepin(GPIO_COOLING,'out');
             setTimeout(function() {
             writepin(GPIO_HEAT,'in');
             },5000)
+
         }
     }
     else if (temp2it <heatstart){
         //onheater
+
         if (temp1it <heatstart){
+            if(!heating) {
+                mqtt_client.publish("home", "Temprature-Heating started");
+                stopwatch1.start();
+            }
             heating = true;
             writepin(GPIO_HEAT,'out');
             setTimeout(function() {
                 writepin(GPIO_COOLING, 'in');
             },5000)
         }
+
     }
     if(cooling){
         if(temp1it <= cooljump || temp2it <= cooljump ){
             //stopcooling
             if(temp1it > 0 && temp2it > 0 ) {
-                cooling = false;
-                writepin(GPIO_COOLING, 'in');
+
+               writepin(GPIO_COOLING, 'in');
+
             }
         }
     }
@@ -267,8 +305,8 @@ function check(){
         if (temp1it >= heatjump || temp2it >= heatjump) {
             //stopcooling
             if (temp1it < 50 && temp2it < 50) {
-                heating = false;
                 writepin(GPIO_HEAT, 'in');
+
             }
         }
     }
@@ -292,5 +330,14 @@ function check(){
     }
 }
 // Create a wrapper function which we'll use specifically for logging
+sendtimerdata.dayOfWeek = [0, new schedule.Range(0, 6)];
+sendtimerdata.hour =20
+sendtimerdata.minute =0
+var data = schedule.scheduleJob(sendtimerdata, function(){
+    mqtt_client.publish("home", "Temprature-Cooler runtime " +  stopwatch.elapsed.minutes);
+    mqtt_client.publish("home", "Temprature-Heater runtime " +  stopwatch1.elapsed.minutes);
 
+    stopwatch.reset();
+    stopwatch1.reset();
+});
 updatedata();

@@ -8,7 +8,9 @@
     "node-schedule": "",
     "mqtt": "",
     "mongoose":"",
-    "textmagic-rest-client":""
+    "textmagic-rest-client":"",
+    "node-stopwatch":"",
+    "node-schedule":""
   },
 
   "scripts": {
