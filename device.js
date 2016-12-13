@@ -103,6 +103,8 @@ function updatedata(){
         coolstart =  temprature.Temprature.coolstart
         cooljump =  temprature.Temprature.cooljump
 
+        console.log(heatstart+":"+":"+heatjump+":"+coolstart+":"+cooljump)
+
     });
 
 }
@@ -301,6 +303,7 @@ function check(){
         }
 
     }
+
     if(cooling){
         if(temp1it <= cooljump || temp2it <= cooljump ){
             //stopcooling
@@ -311,6 +314,7 @@ function check(){
             }
         }
     }
+
     if(heating) {
         if (temp1it >= heatjump || temp2it >= heatjump) {
             //stopcooling
@@ -320,12 +324,16 @@ function check(){
             }
         }
     }
+
     if(temp1it <= 25.0 || temp2it <=25.0 ){
         //warning heating not working
         if(temp1it > 0 && temp2it > 0 ) {
             sendtext("Temp too low and heater is set to on");
             error += "Temp too low and heater is set to on  " + now
             mqtt_client.publish("home", "Temprature-Warninig Low-" + temp1it.toString());
+            if(cooling){
+                writepin(GPIO_COOLING, 'in');
+            }
         }
     }
     if(temp1it >= 27.8 || temp2it >= 27.9)
