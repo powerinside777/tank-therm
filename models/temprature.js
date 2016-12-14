@@ -15,4 +15,4 @@ var fishtanktemp = mongoose.Schema({
 
 });
 
-module.exports = mongoose.model('Temp',fishtanktemp);
+module.exports = mongoose.model('temp',fishtanktemp);

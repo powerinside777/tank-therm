@@ -1,5 +1,5 @@
 // Load node modules
-var Stopwatch = require("node-stopwatch").Stopwatch;
+
 var schedule = require('node-schedule');
 var fs = require('fs');
 var sys = require('sys');
@@ -15,7 +15,8 @@ var MQTT_BROKER_PASS = 'Isabella2030';
 var mongoose = require('mongoose');
 var configDB = require('./models/database.js');
 var db = mongoose.connection;
-var temp       		= require('./models/temprature');
+mongoose.Promise = require('q').Promise
+var temp       		= require('./models/temprature.js');
 var lastReconnectAttempt;
 var error =""
 var ncurrentcoolerrunftime;
@@ -24,13 +25,15 @@ var settings = {
     username:MQTT_BROKER_USER,
     password:MQTT_BROKER_PASS
 }
-var stopwatch = Stopwatch.create();
-var stopwatch1 = Stopwatch.create();
+
 mongoose.connect(configDB.url,{server:{auto_reconnect:true}},function(err) {
     if (err)
         return console.error(err);
 
+
 }); // connect to our database
+
+
 db.on('error', function(error) {
     console.error('Error in MongoDb connection: ' + error);
     mongoose.disconnect();
@@ -61,7 +64,7 @@ db.on('disconnected', function() {
 });
 db.on('connected', function() {
     updatedata()
-
+    console.log("coonected to db")
 });
 var mqtt_client  = mqtt.connect(MQTT_HOST,settings);
 mqtt_client.on('connect', function () {
@@ -77,18 +80,24 @@ var heating = false;
 var GPIO_HEAT = 11;
 var GPIO_COOLING = 9;
 var PATH = '/sys/class/gpio';
-var heatstart ="25.9";
-var coolstart ="27.0";
-var cooljump ="26";
-var heatjump ="26.4";
+var heatstart =25.6
+var coolstart =27.0
+var cooljump =26.4
+var heatjump =26.4
 var config;
+var coolertime = 0
+var heattime = 0
 // Setup static server for current directory
 exportPin(9);
 exportPin(11);
 writepin(GPIO_HEAT,'in');
 writepin(GPIO_COOLING,'in');
 
+// set the user's local credentials
+
+
 function updatedata(){
+    var promises = [
     temp.findOne({ 'Temprature.id' :  'main' }, function(err, temprature) {
         if (err)
             return;
@@ -98,25 +107,32 @@ function updatedata(){
             return;
 
 
-        heatstart =  temprature.Temprature.heatstart;
-        heatjump =  temprature.Temprature.heatjump
-        coolstart =  temprature.Temprature.coolstart
-        cooljump =  temprature.Temprature.cooljump
+        heatstart =  parseFloat(temprature.Temprature.heatstart)
+        heatjump =  parseFloat(temprature.Temprature.heatjump)
+        coolstart =  parseFloat(temprature.Temprature.coolstart)
+        cooljump = parseFloat( temprature.Temprature.cooljump)
 
         console.log(heatstart+":"+":"+heatjump+":"+coolstart+":"+cooljump)
 
-    });
+    }).exec()
+        ];
 
 }
 function savedata(data,sensor){
+    var promises = [
 
-    temp.findOne({ 'Temprature.id' :  'main' }, function(err, temprature) {
-        if (err)
+    temp.findOne({ 'Temprature.id' :'main'}, function(err, temprature) {
+        if (err){
+            console.log(err)
             return;
-        console.log("found db")
+        }
+
+
         // if no user is found, return the message
         if (!temprature)
             return;
+
+        console.log("found db")
         switch(sensor){
             case "coolstart":
                 temprature.Temprature.coolstart = data;
@@ -139,7 +155,8 @@ function savedata(data,sensor){
             updatedata();
             return;
         });
-    });
+    }).exec()
+    ];
 }
 
 mqtt_client.on('message', function (topic, message) {
@@ -163,19 +180,19 @@ function writepin(pin,value){
             return;
         }
         if(pin  == GPIO_HEAT) {
-            if (value == 'in') $$(heating)
+            if (value == 'in' && heating)
             {
                 heating = false;
                 mqtt_client.publish("home", "Temprature-heating Stoped");
-                stopwatch1.stop();
+
             }
         }
         if(pin  == GPIO_COOLING) {
-            if (value == 'in') $$(cooling)
+            if (value == 'in' && cooling)
             {
                 cooling = false;
                 mqtt_client.publish("home", "Temprature-Cooling Stoped");
-                stopwatch.stop();
+
 
             }
         }
@@ -215,8 +232,7 @@ setInterval(function(){
 
         // Round to one decimal place
         temp1 = Math.round(temp1 * 10) / 10;
-        console.log("Temp1="+temp1)
-        mqtt_client.publish("home", "Temprature-Sump-"+temp1);
+        mqtt_client.publish("home", "Temprature-Sump-"+temp1.toString());
 
     });
     fs.readFile('/sys/bus/w1/devices/28-041658a940ff/w1_slave', function(err, buffer)
@@ -271,14 +287,21 @@ function check(){
     var callback= "";
     console.log("floatval1="+temp1it.toString());
     console.log("floatval2="+temp2it.toString());
-    var now = new Date().getTime();
+if(cooling)
+    coolertime ++
+
+if(heating)
+    heattime ++
+
+
     if(temp2it >coolstart){
 //oncooler
-        if(temp1it >coolstart){
+        if(temp1it > coolstart){
             if(!cooling) {
                 mqtt_client.publish("home", "Temprature-cooling started");
-                stopwatch.start();
+
             }
+            console.log('im cooling')
             cooling = true;
             writepin(GPIO_COOLING,'out');
             setTimeout(function() {
@@ -300,6 +323,8 @@ function check(){
             setTimeout(function() {
                 writepin(GPIO_COOLING, 'in');
             },5000)
+
+
         }
 
     }
@@ -368,8 +393,8 @@ var data = schedule.scheduleJob(sendtimerdata, function(){
     var mailOptions={
         to : "powerinside777@gmail.com",
         subject : 'Fish tank Temprature Report',
-        text : "Current temprature is "+temp1 +'\r\n'+" Current Cooler runtime is "+ stopwatch.elapsed.minutes+' mins \r\n'+"Current Heater runtime is "+
-        stopwatch1.elapsed.minutes+"mins \r\n"+ "errors are \r\n"+error
+        text : "Current temprature is "+temp1 +'\r\n'+" Current Cooler runtime is "+ coolertime+' mins \r\n'+"Current Heater runtime is "+
+        heattime+"mins \r\n"+ "errors are \r\n"+error
     }
     smtpTransport.sendMail(mailOptions, function(error, response){
         if(error){
@@ -381,7 +406,7 @@ var data = schedule.scheduleJob(sendtimerdata, function(){
         }
     });
     error = '';
-    stopwatch.reset();
-    stopwatch1.reset();
+    heattime  = 0
+    coolertime = 0
 });
-updatedata();
+
