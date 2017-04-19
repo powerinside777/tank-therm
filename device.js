@@ -379,8 +379,6 @@ sendtimerdata.dayOfWeek = [0, new schedule.Range(0, 6)];
 sendtimerdata.hour = 22;
 sendtimerdata.minute = 33;
 const data = schedule.scheduleJob(sendtimerdata, () => {
-  mqtt_client.publish('home', `Temprature-Cooler runtime ${stopwatch.elapsed.minutes}`);
-  mqtt_client.publish('home', `Temprature-Heater runtime ${stopwatch1.elapsed.minutes}`);
 
   const mailOptions = {
     to: 'powerinside777@gmail.com',
